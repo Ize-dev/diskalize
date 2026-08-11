@@ -1,4 +1,5 @@
 /target
+/dist
 
 # Editors and OS clutter
 .vscode/
