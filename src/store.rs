@@ -14,6 +14,26 @@ use crate::scan::{usn::LiveWatcher, Target};
 use crate::search::{self, Query};
 
 /// A search hit, qualified by which volume it came from.
+/// Which volume a fresh window should open, given their keys.
+///
+/// Drive letters win over anything else: a share restored from the settings is
+/// not what "first drive" means, and it was landing there because its walk
+/// finished last and grabbed the selection.
+pub fn preferred_volume(keys: &[String], first: bool) -> Option<usize> {
+    let is_drive = |k: &String| k.len() == 2 && k.as_bytes()[1] == b':';
+    let pool: Vec<usize> = (0..keys.len()).filter(|&i| is_drive(&keys[i])).collect();
+    let pool = if pool.is_empty() {
+        (0..keys.len()).collect()
+    } else {
+        pool
+    };
+    if first {
+        pool.into_iter().min_by_key(|&i| keys[i].to_ascii_uppercase())
+    } else {
+        pool.into_iter().max_by_key(|&i| keys[i].to_ascii_uppercase())
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Hit {
     pub vol: u16,
@@ -270,5 +290,40 @@ pub fn sort_hits(
     keyed.sort_unstable_by(|a, b| if desc { b.0.cmp(&a.0) } else { a.0.cmp(&b.0) });
     for (dst, (_, h)) in hits.iter_mut().zip(keyed) {
         *dst = h;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::preferred_volume;
+
+    fn keys(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn drive_letters_come_before_shares() {
+        // The order they were indexed in is not the order they are offered in.
+        let k = keys(&[r"\\fatboy\downloads", "E:", "C:", "D:"]);
+        assert_eq!(preferred_volume(&k, true), Some(2), "should pick C:");
+        assert_eq!(preferred_volume(&k, false), Some(1), "should pick E:");
+    }
+
+    #[test]
+    fn a_share_only_wins_when_it_is_all_there_is() {
+        let k = keys(&[r"\\fatboy\downloads"]);
+        assert_eq!(preferred_volume(&k, true), Some(0));
+    }
+
+    #[test]
+    fn nothing_indexed_yet() {
+        assert_eq!(preferred_volume(&[], true), None);
+    }
+
+    #[test]
+    fn case_does_not_decide_the_order() {
+        let k = keys(&["d:", "C:"]);
+        assert_eq!(preferred_volume(&k, true), Some(1));
+        assert_eq!(preferred_volume(&k, false), Some(0));
     }
 }

@@ -261,7 +261,14 @@ pub struct App {
     /// Windows still to open, from `--windows N`.
     pending_windows: u32,
     /// A UNC share being walked in this process. See `scan_share`.
-    share_scan: Option<(Receiver<(String, Result<Index, String>)>, Arc<crate::scan::Progress>)>,
+    /// The receiver, its progress handle, and whether finishing should switch
+    /// to it. That last flag is false for shares re-walked at startup: they are
+    /// being restored, not asked for.
+    share_scan: Option<(
+        Receiver<(String, Result<Index, String>)>,
+        Arc<crate::scan::Progress>,
+        bool,
+    )>,
     /// Shares already attempted this session, so a dead server is asked once.
     shares_tried: std::collections::HashSet<String>,
     /// Details-view column widths, dragged by the user.
@@ -570,7 +577,7 @@ impl App {
         match &target {
             Target::Drive(d) => self.svc.send(client::Cmd::Rescan(format!("{}:", d.letter))),
             Target::Path(p) if is_unc(p) => {
-                self.scan_share(p.clone());
+                self.scan_share(p.clone(), true);
                 self.scanning = Some(target.label());
                 return;
             }
@@ -602,7 +609,7 @@ impl App {
             .cloned();
         if let Some(p) = next {
             self.shares_tried.insert(p.clone());
-            self.scan_share(p);
+            self.scan_share(p, false);
         }
     }
 
@@ -872,7 +879,7 @@ impl App {
     /// credentials that made `\server\share` work in Explorer. This process is
     /// the user, so the share opens. The result stays local to the window:
     /// there is no MFT and therefore no USN journal to keep it live either way.
-    fn scan_share(&mut self, path: String) {
+    fn scan_share(&mut self, path: String, activate: bool) {
         if self.share_scan.is_some() {
             self.notice = Some((t("Es läuft bereits ein Freigaben-Scan").into(), true));
             return;
@@ -890,14 +897,15 @@ impl App {
                 let _ = tx.send((path, r));
             })
             .ok();
-        self.share_scan = Some((rx, progress));
+        self.share_scan = Some((rx, progress, activate));
     }
 
     /// Folds a finished share walk into the store.
     fn poll_share_scan(&mut self, ctx: &egui::Context) {
-        let Some((rx, _)) = &self.share_scan else {
+        let Some((rx, _, activate)) = &self.share_scan else {
             return;
         };
+        let activate = *activate;
         match rx.try_recv() {
             Ok((path, Ok(index))) => {
                 self.share_scan = None;
@@ -915,8 +923,17 @@ impl App {
                     live: false,
                     target,
                 });
-                self.store.active = None; // force `activate` to do its work
-                self.activate(slot);
+                // Only when it was asked for. A share restored from the
+                // settings finishing its walk used to yank the view over to it,
+                // which is why every launch ended up on the network drive
+                // however the start-drive preference was set.
+                if activate {
+                    self.auto_selected = false;
+                    self.store.active = None;
+                    self.activate(slot);
+                } else if self.store.active.is_none() {
+                    self.activate(slot);
+                }
             }
             Ok((_, Err(e))) => {
                 self.share_scan = None;
@@ -1354,28 +1371,9 @@ impl eframe::App for App {
 }
 
 impl App {
-    /// The volume a fresh window should show: the first drive by letter, or the
-    /// last, as configured. Volumes that carry no drive letter — an added share
-    /// — never win it by default.
     fn preferred_slot(&self) -> Option<usize> {
-        let lettered: Vec<usize> = self
-            .store
-            .vols
-            .iter()
-            .enumerate()
-            .filter(|(_, v)| v.key.len() == 2 && v.key.as_bytes()[1] == b':')
-            .map(|(i, _)| i)
-            .collect();
-        let pool: Vec<usize> = if lettered.is_empty() {
-            (0..self.store.vols.len()).collect()
-        } else {
-            lettered
-        };
-        if self.cfg.start_first_drive {
-            pool.into_iter().min_by_key(|&i| self.store.vols[i].key.clone())
-        } else {
-            pool.into_iter().max_by_key(|&i| self.store.vols[i].key.clone())
-        }
+        let keys: Vec<String> = self.store.vols.iter().map(|v| v.key.clone()).collect();
+        store::preferred_volume(&keys, self.cfg.start_first_drive)
     }
 
     /// An egui id that no other window can collide with.
@@ -1642,6 +1640,10 @@ impl App {
                             .clicked()
                         {
                             self.global_search = !self.global_search;
+                            // The same setting the dialog shows, so flipping it
+                            // here is remembered rather than lost on exit.
+                            self.cfg.search_all_drives = self.global_search;
+                            self.cfg.save();
                             if self.global_search {
                                 self.svc.send(client::Cmd::LoadAll);
                             }
