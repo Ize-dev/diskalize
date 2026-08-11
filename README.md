@@ -4,9 +4,6 @@ Disk space analyser for Windows. Reads the NTFS master file table directly, keep
 the index live through the USN journal, and draws everything on the GPU so the
 interface never stutters.
 
-**4.96 million files indexed in 3.4 seconds. Searched in 78 ms. The window costs
-about 190 MB, and a second one costs 17.**
-
 ![Sunburst](Screenshots/Sunburst.png)
 
 ## Features
@@ -98,5 +95,3 @@ with no elevation at all.
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
-
-Idea and realisation: Ize.
