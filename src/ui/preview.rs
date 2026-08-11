@@ -248,11 +248,11 @@ fn is_texty(name: &str) -> bool {
 
 fn kind_label(name: &str, is_dir: bool) -> String {
     if is_dir {
-        return "Ordner".into();
+        return crate::i18n::t("Ordner").into();
     }
     match name.rsplit_once('.') {
-        Some((_, ext)) => format!("{}-Datei", ext.to_uppercase()),
-        None => "Datei".into(),
+        Some((_, ext)) => crate::i18n::tf("{0}-Datei", &[&ext.to_uppercase()]),
+        None => crate::i18n::t("Datei").into(),
     }
 }
 
@@ -447,14 +447,23 @@ pub fn show(
                         ui.label(RichText::new(v).size(11.0));
                         ui.end_row();
                     };
-                    row("Typ", kind_label(&name, is_dir));
-                    row("Größe", fmt::size(ix.size[idx as usize]));
+                    row(crate::i18n::t("Typ"), kind_label(&name, is_dir));
+                    row(crate::i18n::t("Größe"), fmt::size(ix.size[idx as usize]));
                     if !is_dir {
-                        row("Logisch", fmt::size(ix.logical[idx as usize]));
+                        row(
+                            crate::i18n::t("Logisch"),
+                            fmt::size(ix.logical[idx as usize]),
+                        );
                     } else {
-                        row("Dateien", fmt::count(ix.files[idx as usize] as u64));
+                        row(
+                            crate::i18n::t("Dateien"),
+                            fmt::count(ix.files[idx as usize] as u64),
+                        );
                     }
-                    row("Geändert", fmt::timestamp(ix.mtime[idx as usize]));
+                    row(
+                        crate::i18n::t("Geändert"),
+                        fmt::timestamp(ix.mtime[idx as usize]),
+                    );
                 });
             if playable {
                 transport(ui, media, &path);
@@ -675,7 +684,7 @@ fn transport(ui: &mut egui::Ui, media: &mut MediaState, path: &str) {
     });
     ui.horizontal(|ui| {
         if ui
-            .checkbox(&mut media.looping, "Endlos")
+            .checkbox(&mut media.looping, crate::i18n::t("Endlos"))
             .on_hover_text(crate::i18n::t("Gilt ab dem nächsten Start"))
             .changed()
         {

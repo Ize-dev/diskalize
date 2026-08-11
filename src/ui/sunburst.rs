@@ -472,7 +472,10 @@ pub fn show(ui: &mut Ui, ix: &Index, st: &mut ChartState, view_root: u32) -> Int
         if can_up {
             "↑ zurück".to_string()
         } else {
-            format!("{} Dateien", fmt::count(ix.files[view_root as usize] as u64))
+            crate::i18n::tf(
+                "{0} Dateien",
+                &[&fmt::count(ix.files[view_root as usize] as u64)],
+            )
         },
         FontId::proportional(10.0),
         theme::TEXT_DIM,

@@ -3,6 +3,7 @@
 
 # Binary
 *.ico binary
+*.png binary
 
 # Language files are edited by hand on Windows; leave them alone.
 *.lang text eol=lf

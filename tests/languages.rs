@@ -187,6 +187,13 @@ fn the_loader_switches_language() {
         ("Dokumente", "Documents"),
         ("Archive", "Archives"),
         ("Programme", "Programs"),
+        // The detail pane, spotted in a screenshot after the first pass.
+        ("Typ", "Type"),
+        ("Größe", "Size"),
+        ("Logisch", "Logical"),
+        ("Geändert", "Modified"),
+        ("Endlos", "Loop"),
+        ("Ordner", "Folder"),
     ] {
         assert_eq!(diskalize::i18n::t(german), english, "{german}");
     }
@@ -194,6 +201,8 @@ fn the_loader_switches_language() {
         diskalize::i18n::tf("{0}   ·   {1} des Ausschnitts", &["1 GB", "12 %"]),
         "1 GB   ·   12 % of the view"
     );
+    assert_eq!(diskalize::i18n::tf("{0}-Datei", &["PNG"]), "PNG file");
+    assert_eq!(diskalize::i18n::tf("{0} Dateien", &["12"]), "12 files");
 
     // The whole cheat sheet, not just its first line.
     let help = diskalize::search::syntax_help();
