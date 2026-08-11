@@ -1,0 +1,12 @@
+/target
+
+# Editors and OS clutter
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+
+# Build leftovers
+*.pdb
+*.exe

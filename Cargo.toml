@@ -1,0 +1,43 @@
+﻿[package]
+name = "diskalize"
+version = "0.1.0"
+edition = "2021"
+description = "Fast disk space analyzer with direct NTFS MFT scanning and live search"
+
+[dependencies]
+eframe = { version = "0.36.1", default-features = false, features = [
+    "wgpu",
+    "default_fonts",
+] }
+egui = "0.36.1"
+libloading = "0.9.0"
+image = { version = "0.25", default-features = false, features = ["png", "bmp", "jpeg"] }
+memchr = "2.8.3"
+parking_lot = "0.12.5"
+raw-window-handle = "0.6"
+rayon = "1.12.0"
+regex = "1.13.1"
+rfd = { version = "0.15", default-features = false, features = ["common-controls-v6"] }
+windows-future = "0.3"
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Storage_FileSystem", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader", "Win32_System_Ole", "Data_Pdf", "Storage", "Storage_Streams", "Foundation"] }
+
+[dependencies.windows-sys]
+version = "0.61"
+features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Threading", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_LibraryLoader", "Win32_Security", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi", "Win32_System_Pipes", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_Services", "Win32_System_Memory", "Win32_Security_Authorization", "Win32_System_ProcessStatus", "Win32_System_Diagnostics_ToolHelp"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[build-dependencies]
+winresource = "0.1.31"
+

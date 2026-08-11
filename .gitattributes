@@ -1,0 +1,8 @@
+# Rust sources keep LF in the repository and check out native on Windows.
+* text=auto eol=lf
+
+# Binary
+*.ico binary
+
+# Language files are edited by hand on Windows; leave them alone.
+*.lang text eol=lf
